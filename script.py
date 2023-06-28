@@ -16,7 +16,11 @@ EXPORT_FOLDER = "exported_metadata"
 START_TOKEN_FILE = "start_token.txt"
 
 def int_to_hex_signed_twos_complement(n):
-    if(n == 0): return "0x00"
+    """
+    Convert a positive integer to a signed two's complement hexadecimal representation.
+    """
+    if(n == 0):
+        return "0x00"
 
     # Ensure that n is a positive integer
     if not isinstance(n, int) or n < 0:
@@ -35,6 +39,9 @@ def int_to_hex_signed_twos_complement(n):
     return hex_string
 
 def fetch_nfts_metadata(start_token: int):
+    """
+    Fetch NFT metadata from the API.
+    """
     url = f"https://eth-mainnet.g.alchemy.com/nft/v2/{API_KEY}/getNFTsForCollection"
     params = {
         "contractAddress": CONTRACT_ADDRESS,
@@ -59,15 +66,24 @@ def fetch_nfts_metadata(start_token: int):
         return []
 
 def save_metadata_file(metadata, nft_id: int):
+    """
+    Save NFT metadata to a file.
+    """
     filename = f"{EXPORT_FOLDER}/{nft_id}.json"
     with open(filename, "w") as file:
         json.dump(metadata, file, indent=2)
 
 def save_start_token(start_token):
+    """
+    Save the tokenId to start with on next loop to a file.
+    """
     with open(START_TOKEN_FILE, "w") as file:
         file.write(str(start_token))
 
 def load_start_token():
+    """
+    Load the tokenId to start with from a file.
+    """
     if os.path.exists(START_TOKEN_FILE):
         with open(START_TOKEN_FILE, "r") as file:
             return int(file.read())
@@ -75,6 +91,9 @@ def load_start_token():
         return 0
     
 def save_inaccessible_nft_ids(nft_ids: list[int]):
+    """
+    Save inaccessible NFT IDs to a file.
+    """
     # Convert the list of integers to a list of strings
     nft_ids_str = [str(nft_id) for nft_id in nft_ids]
 
@@ -82,6 +101,9 @@ def save_inaccessible_nft_ids(nft_ids: list[int]):
         file.write("\n".join(nft_ids_str))
 
 def load_inaccessible_nft_ids():
+    """
+    Load inaccessible NFT IDs from a file.
+    """
     if os.path.exists("inaccessible_nft_ids.txt"):
         with open("inaccessible_nft_ids.txt", "r") as file:
             nft_ids_str = file.read().split("\n")
@@ -92,6 +114,9 @@ def load_inaccessible_nft_ids():
         return []
 
 def find_missing_nft_id(inaccessible_token_ids):
+    """
+    Find the next missing NFT ID to fetch.
+    """
     exported_ids = set()
     for filename in os.listdir(EXPORT_FOLDER):
         if filename.endswith(".json"):
@@ -107,6 +132,9 @@ def find_missing_nft_id(inaccessible_token_ids):
 
 # Fetch and save NFTs metadata in batch
 def fetch_and_save_nfts_metadata():
+    """
+    Fetch and save NFT metadata.
+    """
     # Create the export folder if it doesn't exist
     if not os.path.exists(EXPORT_FOLDER):
         os.makedirs(EXPORT_FOLDER)
@@ -165,7 +193,9 @@ def fetch_and_save_nfts_metadata():
 
 # Fetch remaining inaccessible NFTs metadata, one by one, with a different API endpoint: "getNFTMetadata"
 def fetch_remaining_nfts_metadata():
-
+    """
+    Fetch and save metadata for remaining inaccessible NFTs.
+    """
     inaccessible_token_ids = load_inaccessible_nft_ids() # Empty by default
 
     print(f"Inaccessible NFT count: {len(inaccessible_token_ids)}")
