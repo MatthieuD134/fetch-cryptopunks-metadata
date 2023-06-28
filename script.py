@@ -2,8 +2,13 @@ import requests
 import json
 import os
 import time
+from dotenv import load_dotenv
 
-API_KEY = "A4-25IzUYiUq_qnWKR_XqDl7FvACLoYl"
+# Load environment variables from .env file
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path=dotenv_path)
+
+API_KEY = os.getenv("ALCHEMY_API_KEY")
 CONTRACT_ADDRESS = "0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB"
 BATCH_SIZE = 100
 MAX_NFTS = 10000
@@ -100,6 +105,7 @@ def find_missing_nft_id(inaccessible_token_ids):
             return nft_id
     return None
 
+# Fetch and save NFTs metadata in batch
 def fetch_and_save_nfts_metadata():
     # Create the export folder if it doesn't exist
     if not os.path.exists(EXPORT_FOLDER):
@@ -157,5 +163,50 @@ def fetch_and_save_nfts_metadata():
 
         time.sleep(1)  # Add a 1-second delay between API calls
 
+# Fetch remaining inaccessible NFTs metadata, one by one, with a different API endpoint: "getNFTMetadata"
+def fetch_remaining_nfts_metadata():
+
+    inaccessible_token_ids = load_inaccessible_nft_ids() # Empty by default
+
+    print(f"Inaccessible NFT count: {len(inaccessible_token_ids)}")
+
+    nft_count = 0
+
+    for nft_id in inaccessible_token_ids:
+        # check if the metadata file already exists
+        if os.path.exists(f"{EXPORT_FOLDER}/{nft_id}.json"):
+            print(f"Metadata for NFT #{nft_id} already exists. Skipping...")
+            nft_count += 1
+            continue
+        
+        url = f"https://eth-mainnet.g.alchemy.com/nft/v2/{API_KEY}/getNFTMetadata"
+        params = {
+            "contractAddress": CONTRACT_ADDRESS,
+            "tokenId": nft_id # for this api endpoint the token id is an integer
+        }
+
+        response = requests.get(url, params=params)
+
+        print(params)
+
+        try:
+            response_json = response.json()
+            metadata = response_json["metadata"]
+            save_metadata_file(metadata, nft_id)
+            nft_count += 1
+            print(f"Saved metadata for NFT #{nft_id} ({nft_count}/{len(inaccessible_token_ids)} inaccessible NFTs)")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON response: {e}")
+            break
+
+        time.sleep(1)  # Add a 1-second delay between API calls
+
+
 if __name__ == "__main__":
+    # exit if API_KEY is None
+    if API_KEY is None:
+        print("API key is not set. Exiting...")
+        exit()
+
     fetch_and_save_nfts_metadata()
+    fetch_remaining_nfts_metadata()
