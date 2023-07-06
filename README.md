@@ -11,3 +11,9 @@ Then simply run the script
 ```
 python3 script.py
 ```
+
+To check the integrity of the metadata files, run the verify-metadata script
+
+```
+python3 verify-metadata.py
+```

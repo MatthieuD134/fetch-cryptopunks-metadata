@@ -14,6 +14,26 @@ BATCH_SIZE = 100
 MAX_NFTS = 10000
 EXPORT_FOLDER = "exported_metadata"
 START_TOKEN_FILE = "start_token.txt"
+INACCESSIBLE_NFTS_FILE = "inaccessible_nft_ids.txt"
+MISSING_FILES_FILE = "missing_files.txt"
+
+def check_metadata_integrity(tokenId: int):
+    """
+    Check the integrity of the metadata for a given tokenId.
+    """
+    filename = f"{EXPORT_FOLDER}/{tokenId}.json"
+    if not os.path.exists(filename):
+        return False
+
+    with open(filename, "r") as file:
+        try:
+            metadata = json.load(file)
+            if "name" not in metadata or "image" not in metadata or "attributes" not in metadata:
+                return False
+            else:
+                return True
+        except json.JSONDecodeError:
+            return False
 
 def int_to_hex_signed_twos_complement(n):
     """
@@ -97,21 +117,29 @@ def save_inaccessible_nft_ids(nft_ids: list[int]):
     # Convert the list of integers to a list of strings
     nft_ids_str = [str(nft_id) for nft_id in nft_ids]
 
-    with open("inaccessible_nft_ids.txt", "w") as file:
+    with open(INACCESSIBLE_NFTS_FILE, "w") as file:
         file.write("\n".join(nft_ids_str))
 
 def load_inaccessible_nft_ids():
     """
     Load inaccessible NFT IDs from a file.
     """
-    if os.path.exists("inaccessible_nft_ids.txt"):
-        with open("inaccessible_nft_ids.txt", "r") as file:
+    nft_ids = []
+    if os.path.exists(INACCESSIBLE_NFTS_FILE):
+        with open(INACCESSIBLE_NFTS_FILE, "r") as file:
             nft_ids_str = file.read().split("\n")
             # Convert the list of strings to a list of integers
-            nft_ids = [int(nft_id) for nft_id in nft_ids_str if nft_id]
-            return nft_ids
-    else:
-        return []
+            nft_ids += [int(nft_id) for nft_id in nft_ids_str if nft_id]
+
+
+
+    if os.path.exists(MISSING_FILES_FILE):
+        with open(MISSING_FILES_FILE, "r") as file:
+            nft_ids_str = file.read().split("\n")
+            # Convert the list of strings to a list of integers
+            nft_ids += [int(nft_id) for nft_id in nft_ids_str if nft_id]
+
+    return nft_ids
 
 def find_missing_nft_id(inaccessible_token_ids):
     """
@@ -204,7 +232,7 @@ def fetch_remaining_nfts_metadata():
 
     for nft_id in inaccessible_token_ids:
         # check if the metadata file already exists
-        if os.path.exists(f"{EXPORT_FOLDER}/{nft_id}.json"):
+        if check_metadata_integrity(nft_id):
             print(f"Metadata for NFT #{nft_id} already exists. Skipping...")
             nft_count += 1
             continue
